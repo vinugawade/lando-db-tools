@@ -17,23 +17,25 @@ module.exports = (lando) => ({
       default: "database",
     },
   }),
-  run: (options) => {
+  run: async (options) => {
     const app = lando.getApp(options._app.root);
     // Get services
-    app.opts = !_.isEmpty(options.service) ? { services: options.service } : {};
-    return app.init().then(() => {
-      const info = _.filter(app.info, (service) =>
-        filterServices(service.service, options.service)
-      );
-      const dbservice = dbServiceGet(app, info);
-      const random = Math.floor(Math.random() * 1000000);
-      const filename = `/tmp/docksal-sequelpro-${random}.spf`;
+    app.opts = !_.isEmpty(options.service) ? options.service : services;
 
-      const external = dbservice.external_connection.port;
-      const creds = dbservice.creds;
-      const mysqlTypes = ["mariadb", "mysql"];
+    // Initialize the app
+    await app.init();
 
-      const xml = `<?xml version="1.0" encoding="UTF-8"?><?xml version="1.0" encoding="UTF-8"?>
+    const info = _.filter(app.info, (service) => filterServices(service.service, options.service));
+
+    const dbservice = dbServiceGet(app, info);
+    const random = Math.floor(Math.random() * 1000000);
+    const filename = `/tmp/docksal-sequelpro-${random}.spf`;
+
+    const external = dbservice.external_connection.port;
+    const creds = dbservice.creds;
+    const mysqlTypes = ["mariadb", "mysql"];
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?><?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
@@ -79,25 +81,24 @@ module.exports = (lando) => ({
 </dict>
 </plist>`;
 
-      if (mysqlTypes.some((v) => dbservice.type.includes(v))) {
-        try {
-          fs.writeFileSync(filename, xml);
-          // file written successfully
-        } catch (err) {
-          console.error(err);
-        }
-
-        lando.shell.sh(["open", `${filename}`], {
-          mode: "exec",
-          detached: true,
-        });
-
-        return;
-      } else {
-        console.log(
-          "Currently only MySQL and MariaDB connections are supported"
-        );
+    if (mysqlTypes.some((v) => dbservice.type.includes(v))) {
+      try {
+        fs.writeFileSync(filename, xml);
+        // file written successfully
+      } catch (err) {
+        console.error(err);
       }
-    });
-  },
+
+      lando.shell.sh(["open", `${filename}`], {
+        mode: "exec",
+        detached: true,
+      });
+
+      return;
+    } else {
+      console.log(
+        "Currently only MySQL and MariaDB connections are supported"
+      );
+    }
+  }
 });
