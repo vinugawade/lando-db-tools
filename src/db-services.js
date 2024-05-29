@@ -11,7 +11,7 @@ function get(app, info) {
   if (info.length > 1) {
     // Filter the services down.
     Object.entries(info).forEach(([key, service]) => {
-      if (service.service === 'database' && 'external_connection' in service) {
+      if (['mysql', 'mariadb'].some((v) => service.type.includes(v)) && 'external_connection' in service) {
         dbservice = service
       }
     })
